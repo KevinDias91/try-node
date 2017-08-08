@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Socket.io</title>
+    </head>
+
+    <body>
+        <h1>Chat avec socket.io !</h1>
+        <!-- Jquery -->
+        <script
+          src="http://code.jquery.com/jquery-3.2.1.slim.min.js"
+          integrity="sha256-k2WSCIexGzOj3Euiig+TlR8gA0EmPjuc79OEeY5L45g="
+          crossorigin="anonymous"></script>
+          <div id="messages"></div>
+
+          <form id="messenger">
+              <fieldset>
+                  <input type="text" id="yourMessage">
+                  <button id="sendk">Envoyer</button>
+              </fieldset>
+          </form>
+
+
+          <form id="mailSend">
+              <input type="mail" name="mail" id="mail" placeholder="Votre email">
+              <input type="text" name="object" id="object" placeholder="Votre object">
+              <textarea name="message" id="mailtext" cols="30" rows="10"></textarea>
+
+              <button id="sendmail">Envoyer</button>
+          </form>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            var socket = io.connect('http://localhost:1337');
+            var myLocalStorage = localStorage;
+            var pseudo;
+
+            console.log(typeof myLocalStorage.pseudo)
+
+            if(typeof myLocalStorage.pseudo === 'undefined' || myLocalStorage.pseudo == 'null') {
+                pseudo = prompt('Quel est votre pseudo ?');
+                myLocalStorage.setItem('pseudo', pseudo);
+                socket.emit('petit_nouveau', pseudo);
+            } else {
+                socket.emit('petit_nouveau', myLocalStorage.pseudo);
+
+                pseudo = myLocalStorage.pseudo;
+            }
+
+            socket.on('message', function(message) {
+                console.log('Le serveur a un message pour vous : ' + message);
+            })
+
+            socket.on('archive', function(data){
+                data.conversation.map(function(message){
+                    var name = Object.keys(message)[0],
+                        message = message[name];
+
+                        console.log(name, message)
+                    $('#messages').append('<p><strong>'+name+': </strong>'+message+'</p>')
+                })
+            })
+
+            socket.on('new_user', function(pseudo) {
+                $('#messages').append('<p>'+pseudo+' vient de se connecter.</p>')
+            })
+
+            socket.on('display_message', function({pseudo, message}){
+                $('#messages').append('<p><strong>'+ pseudo +' : </strong>' + message + '</p>');
+            })
+
+            $('form#messenger').submit(function(){
+                var message = $('#yourMessage').val();
+
+                $('#messages').append('<p><strong>'+ pseudo +' : </strong>' + message + '</p>');
+
+                socket.emit('send_message', { pseudo: pseudo, message: message })
+
+                $('#yourMessage').val('');
+                return false;
+            })
+
+            $('form#mailSend').submit(function(){
+                var mail = $('#mail').val(),
+                    object = $('#object').val(),
+                    mailtext = $('#mailtext').val();
+
+                console.log($('#mail'))
+
+                socket.emit('send_mail', { mail: mail, object: object, mailtext: mailtext })
+
+                return false;
+            })
+
+        </script>
+    </body>
+</html>
